@@ -6,74 +6,71 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Button from 'react-bootstrap/Button';
 import 'bootstrap/dist/css/bootstrap.css';
+import axios from 'axios';
 // import Dropzone from './dropzone/Dropzone';
 
 class App extends Component {
 
   constructor(props) {
     super(props);
-
+    this.onChange = this.onChange.bind(this);
     this.state = {
       isLoading: false,
-      formData: {
-        textfield1: '',
-        textfield2: '',
-        select1: 1,
-        select2: 1,
-        select3: 1
-      },
-      result: ""
+      files: [],
+      result: "",
+      visible: false
     };
   }
 
-  handleChange = (event) => {
-    const value = event.target.value;
-    const name = event.target.name;
-    var formData = this.state.formData;
-    formData[name] = value;
-    this.setState({
-      formData
-    });
-  }
-
   handlePredictClick = (event) => {
-    const formData = this.state.formData;
     this.setState({ isLoading: true });
-    fetch('http://127.0.0.1:3000/',
-      {
-        method: "GET",
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+    var self = this;
+    axios.get('http://07f3791774b7.ngrok.io/')
+      .then(function (response) {
+        console.log(response);
+        console.log(response.data);
+        var data = response.data;
+        console.log("Data is: ", data)
+        self.setState({
+          result: data,
+          isLoading: false,
+          visible: true
+        });
       })
-      .then(response => response.json())
-      .then(data => console.log(data));
-    // fetch('http://127.0.0.1:3000/',
-    //   {
-    //     headers: {
-    //       'Accept': 'application/json',
-    //       'Content-Type': 'application/json'
-    //     },
-    //     method: 'POST',
-    //     body: JSON.stringify(formData)
-    //   })
-    //   .then(response => response.json())
-    //   .then(response => {
-    //     this.setState({
-    //       result: response.result,
-    //       isLoading: false
-    //     });
-    // });
   }
 
   handleCancelClick = (event) => {
     this.setState({ result: "" });
   }
 
+  handleUpload = (event) => {
+    var formData = new FormData();
+    formData.append("file", this.state.files[0]);
+
+    console.log("initial formdata", formData);
+    var self = this;
+    axios.post(' http://07f3791774b7.ngrok.io/upload', formData
+    )
+      .then(function (response) {
+        console.log("Submitted Formdata:", formData);
+        console.log(response);
+        console.log(response.data);
+      })
+
+  }
+
+  onChange(e) {
+    var files = e.target.files;
+    console.log(files);
+    var filesArr = Array.prototype.slice.call(files);
+    console.log(filesArr);
+    this.setState({ files: [...this.state.files, ...filesArr] });
+  }
+
+
   render() {
     const isLoading = this.state.isLoading;
-    const formData = this.state.formData;
+    // const formData = this.state.formData;
     const result = this.state.result;
 
     return (
@@ -86,7 +83,7 @@ class App extends Component {
             <Form.Row>
               <Form.Group as={Col}>
                 <Form.Label>Upload financial data</Form.Label>
-                <Form.File
+                {/* <Form.File
                   // type="text"
                   // placeholder="Text Field 1"
                   id="exampleFormControlFile1"
@@ -94,9 +91,27 @@ class App extends Component {
                 // name="textfield1"
                 // value={formData.textfield1}
                 // onChange={this.handleChange}
-                />
+                /> */}
+                <Row>
+                  <label className="custom-file-upload">
+                    <input type="file" multiple onChange={this.onChange} />
+                    <i className="fa fa-cloud-upload" /> Attach
+                </label>
+                </Row>
               </Form.Group>
             </Form.Row>
+            <Row>
+              <Col>
+                <Button
+                  block
+                  variant="danger"
+                  disabled={isLoading}
+                  onClick={this.handleUpload}>
+                  Upload
+                </Button>
+              </Col>
+            </Row>
+
             <Row>
               <Col>
                 <Button
@@ -118,15 +133,15 @@ class App extends Component {
               </Col>
             </Row>
           </Form>
-          {result === "" ? null :
+          {!this.state.visible ? null :
             (<Row>
               <Col className="result-container">
-                <h5 id="result">{result}</h5>
+                <h5 id="result">{this.state.result}</h5>
               </Col>
             </Row>)
           }
         </div>
-      </Container>
+      </Container >
     );
   }
 }
